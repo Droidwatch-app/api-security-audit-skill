@@ -1,0 +1,36 @@
+{
+  "base_url": "https://staging-api.ejemplo.com",
+  "auth_header": "Authorization",
+  "auth_scheme": "Bearer",
+  "identities": {
+    "A": {"token_env": "AUDIT_TOKEN_A"},
+    "B": {"token_env": "AUDIT_TOKEN_B"},
+    "LOW": {"token_env": "AUDIT_TOKEN_LOW"}
+  },
+  "tests": [
+    {
+      "id": "T-001-statements",
+      "category": "API1:2023",
+      "checklist": "AUTHZ-01",
+      "method": "GET",
+      "path": "/v2/accounts/{account_id}/statements",
+      "vars": {"account_id": "REEMPLAZAR-ID-DE-CUENTA-DE-A"},
+      "owner": "A",
+      "attackers": ["B"],
+      "unauthenticated": true,
+      "expect_owner_status": [200]
+    },
+    {
+      "id": "T-002-admin-users",
+      "category": "API5:2023",
+      "checklist": "AUTHZ-03",
+      "method": "GET",
+      "path": "/v2/admin/users",
+      "query": {"limit": 5},
+      "owner": "A",
+      "attackers": ["LOW"],
+      "unauthenticated": true,
+      "expect_owner_status": [200]
+    }
+  ]
+}

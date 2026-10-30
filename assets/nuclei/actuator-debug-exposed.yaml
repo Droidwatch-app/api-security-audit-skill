@@ -1,0 +1,37 @@
+id: audit-actuator-debug-exposed
+
+info:
+  name: Endpoints de gestión/depuración expuestos (Actuator y similares)
+  author: api-security-audit
+  severity: medium
+  description: |
+    Detecta endpoints de gestión que revelan configuración o mapeos de rutas sin autenticación
+    (API8:2023, API9:2023). Solo GET sobre endpoints de metadatos; no se descargan volcados de memoria.
+  classification:
+    cwe-id: CWE-200
+  tags: api,actuator,debug,misconfig,audit
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/actuator/env"
+      - "{{BaseURL}}/actuator/mappings"
+      - "{{BaseURL}}/actuator/configprops"
+      - "{{BaseURL}}/env"
+      - "{{BaseURL}}/debug/vars"
+      - "{{BaseURL}}/metrics"
+    stop-at-first-match: false
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - "propertySources"
+          - "dispatcherServlets"
+          - "activeProfiles"
+          - "cmdline"
+          - "memstats"
+        condition: or

@@ -1,0 +1,9 @@
+{
+  "authorization_reference": "SOW-2026-114",
+  "owner": "Cliente S.A.",
+  "allowed_hosts": ["staging-api.ejemplo.com"],
+  "valid_from": "2026-10-29T00:00:00Z",
+  "valid_until": "2026-11-05T23:59:59Z",
+  "max_requests": 200,
+  "max_rps": 2
+}

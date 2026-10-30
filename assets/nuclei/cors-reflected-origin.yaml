@@ -1,0 +1,32 @@
+id: audit-cors-reflected-origin
+
+info:
+  name: CORS refleja un Origin arbitrario con credenciales
+  author: api-security-audit
+  severity: medium
+  description: |
+    Envía un Origin ficticio y comprueba si el servidor lo refleja en Access-Control-Allow-Origin
+    junto con Access-Control-Allow-Credentials: true (API8:2023, CWE-942). Solo lectura (GET).
+    Confirmar impacto manualmente (¿endpoint con datos sensibles/autenticado por cookie?).
+  classification:
+    cwe-id: CWE-942
+  tags: api,cors,misconfig,audit
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    headers:
+      Origin: https://audit-origin.invalid
+    matchers-condition: and
+    matchers:
+      - type: word
+        part: header
+        case-insensitive: true
+        words:
+          - "access-control-allow-origin: https://audit-origin.invalid"
+      - type: word
+        part: header
+        case-insensitive: true
+        words:
+          - "access-control-allow-credentials: true"

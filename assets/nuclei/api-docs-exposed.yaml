@@ -1,0 +1,42 @@
+id: audit-api-docs-exposed
+
+info:
+  name: Documentación de API expuesta (OpenAPI/Swagger)
+  author: api-security-audit
+  severity: info
+  description: |
+    Detecta especificaciones y visores de documentación accesibles sin autenticación.
+    Relevante para inventario (API9:2023) y configuración (API8:2023). Solo lectura (GET).
+    Úsese únicamente contra objetivos autorizados.
+  classification:
+    cwe-id: CWE-200
+  tags: api,exposure,openapi,swagger,audit
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/openapi.json"
+      - "{{BaseURL}}/openapi.yaml"
+      - "{{BaseURL}}/swagger.json"
+      - "{{BaseURL}}/v2/api-docs"
+      - "{{BaseURL}}/v3/api-docs"
+      - "{{BaseURL}}/api-docs"
+      - "{{BaseURL}}/swagger-ui/index.html"
+      - "{{BaseURL}}/docs"
+      - "{{BaseURL}}/redoc"
+    stop-at-first-match: false
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        case-insensitive: true
+        words:
+          - '"openapi"'
+          - '"swagger"'
+          - "openapi:"
+          - "swagger-ui"
+          - "redoc"
+        condition: or

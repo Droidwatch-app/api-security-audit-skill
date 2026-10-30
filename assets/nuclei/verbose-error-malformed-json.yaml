@@ -1,0 +1,37 @@
+id: audit-verbose-error-malformed-json
+
+info:
+  name: Errores verbosos ante JSON malformado
+  author: api-security-audit
+  severity: low
+  description: |
+    Envía un cuerpo JSON incompleto y busca trazas de pila o detalles internos en la respuesta
+    (API8:2023, CWE-209). Cambiar el endpoint con: nuclei -V endpoint=/api/v1/login
+    Una sola petición por plantilla; no usar contra endpoints con efectos secundarios.
+  classification:
+    cwe-id: CWE-209
+  tags: api,error-handling,misconfig,audit
+
+variables:
+  endpoint: "/"
+
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}{{endpoint}}"
+    headers:
+      Content-Type: application/json
+    body: '{"audit":'
+    matchers-condition: or
+    matchers:
+      - type: regex
+        part: body
+        regex:
+          - "(?i)traceback \\(most recent call last\\)"
+          - "at [\\w.$]+\\([\\w$]+\\.java:\\d+\\)"
+          - "(?i)SQLSTATE\\["
+          - "(?i)System\\.[A-Za-z]+Exception"
+          - "(?i)exception in thread"
+          - "(?i)stack ?trace"
+          - "node_modules/"
+          - "(?i)org\\.springframework\\."

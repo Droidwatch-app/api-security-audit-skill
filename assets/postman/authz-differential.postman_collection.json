@@ -1,0 +1,115 @@
+{
+  "info": {
+    "name": "Autorización diferencial (BOLA / BFLA / sin autenticación)",
+    "description": "Plantilla para pruebas autorizadas de solo lectura. Define las variables de colección: baseUrl, tokenA (dueño), tokenB (otro usuario, mismo rol), tokenLow (rol inferior), resourceIdA (ID de un objeto creado por A), adminPath. Duplica la carpeta por cada endpoint con identificador. Las pruebas de escritura/borrado se hacen a mano con objetos de prueba. Solo contra objetivos con autorización escrita.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "https://staging-api.ejemplo.com"},
+    {"key": "tokenA", "value": ""},
+    {"key": "tokenB", "value": ""},
+    {"key": "tokenLow", "value": ""},
+    {"key": "resourceIdA", "value": "REEMPLAZAR"},
+    {"key": "resourcePath", "value": "/v2/accounts"},
+    {"key": "adminPath", "value": "/v2/admin/users"}
+  ],
+  "item": [
+    {
+      "name": "AUTHZ-01 · BOLA lectura",
+      "item": [
+        {
+          "name": "01 Dueño (A) lee su objeto — esperado 200",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{tokenA}}"}, {"key": "X-Security-Audit", "value": "REEMPLAZAR-REFERENCIA"}],
+            "url": {"raw": "{{baseUrl}}{{resourcePath}}/{{resourceIdA}}", "host": ["{{baseUrl}}"], "path": ["{{resourcePath}}", "{{resourceIdA}}"]}
+          },
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('Dueño recibe 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('ownerBodyLen', pm.response.text().length);"
+          ]}}]
+        },
+        {
+          "name": "02 Otro usuario (B) pide el objeto de A — esperado 403/404",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{tokenB}}"}, {"key": "X-Security-Audit", "value": "REEMPLAZAR-REFERENCIA"}],
+            "url": {"raw": "{{baseUrl}}{{resourcePath}}/{{resourceIdA}}", "host": ["{{baseUrl}}"], "path": ["{{resourcePath}}", "{{resourceIdA}}"]}
+          },
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('B NO accede al objeto de A (401/403/404)', () => pm.expect([401,403,404]).to.include(pm.response.code));",
+            "const ownerLen = Number(pm.collectionVariables.get('ownerBodyLen')||0);",
+            "if (pm.response.code >= 200 && pm.response.code < 300 && ownerLen>0) {",
+            "  const ratio = Math.abs(pm.response.text().length - ownerLen)/ownerLen;",
+            "  pm.test('POSIBLE BOLA: respuesta similar a la del dueño (confirmar manualmente)', () => pm.expect(ratio).to.be.above(0.10));",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "03 Sin autenticación — esperado 401/403",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Security-Audit", "value": "REEMPLAZAR-REFERENCIA"}],
+            "url": {"raw": "{{baseUrl}}{{resourcePath}}/{{resourceIdA}}", "host": ["{{baseUrl}}"], "path": ["{{resourcePath}}", "{{resourceIdA}}"]}
+          },
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('Sin credenciales se deniega (401/403)', () => pm.expect([401,403]).to.include(pm.response.code));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "AUTHZ-03 · BFLA función administrativa",
+      "item": [
+        {
+          "name": "01 Rol bajo ejecuta función administrativa — esperado 403",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{tokenLow}}"}, {"key": "X-Security-Audit", "value": "REEMPLAZAR-REFERENCIA"}],
+            "url": {"raw": "{{baseUrl}}{{adminPath}}?limit=1", "host": ["{{baseUrl}}"], "path": ["{{adminPath}}"], "query": [{"key": "limit", "value": "1"}]}
+          },
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('Rol bajo NO accede a la función (401/403/404)', () => pm.expect([401,403,404]).to.include(pm.response.code));"
+          ]}}]
+        },
+        {
+          "name": "02 Sin autenticación — esperado 401/403",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "X-Security-Audit", "value": "REEMPLAZAR-REFERENCIA"}],
+            "url": {"raw": "{{baseUrl}}{{adminPath}}?limit=1", "host": ["{{baseUrl}}"], "path": ["{{adminPath}}"], "query": [{"key": "limit", "value": "1"}]}
+          },
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('Sin credenciales se deniega (401/403)', () => pm.expect([401,403]).to.include(pm.response.code));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "RES-02 · Tope de paginación (umbral bajo, sin saturar)",
+      "item": [
+        {
+          "name": "limit exagerado — esperado clamp o 400",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{tokenA}}"}, {"key": "X-Security-Audit", "value": "REEMPLAZAR-REFERENCIA"}],
+            "url": {"raw": "{{baseUrl}}{{resourcePath}}?limit=100000", "host": ["{{baseUrl}}"], "path": ["{{resourcePath}}"], "query": [{"key": "limit", "value": "100000"}]}
+          },
+          "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+            "pm.test('Se limita o rechaza el limit exagerado', () => {",
+            "  if (pm.response.code === 200) {",
+            "    let n = 0; try { const j = pm.response.json(); n = Array.isArray(j) ? j.length : (j.data||j.items||[]).length; } catch(e) {}",
+            "    pm.expect(n).to.be.below(1000);",
+            "  } else { pm.expect([400,422]).to.include(pm.response.code); }",
+            "});"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "AUTHN-06 · Presencia de límite de intentos (cuenta propia, tasa baja)",
+      "description": "Enviar pocas peticiones fallidas (p. ej. 10) con una cuenta de prueba propia y verificar si aparece 429/bloqueo. No ejecutar fuerza bruta real.",
+      "item": []
+    }
+  ]
+}

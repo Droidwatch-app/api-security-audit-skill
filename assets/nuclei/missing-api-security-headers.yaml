@@ -1,0 +1,25 @@
+id: audit-missing-api-security-headers
+
+info:
+  name: Cabeceras de seguridad ausentes en respuestas de API
+  author: api-security-audit
+  severity: info
+  description: |
+    Informa de ausencia de X-Content-Type-Options y de Cache-Control en respuestas 200 de la API
+    (API8:2023). Es de bajo impacto: agrúpalo en un solo hallazgo de configuración y no lo infles.
+  tags: api,headers,misconfig,audit
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: dsl
+        dsl:
+          - '!contains(tolower(all_headers), "x-content-type-options")'
+          - '!contains(tolower(all_headers), "cache-control")'
+        condition: or

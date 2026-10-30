@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: API de ejemplo (deliberadamente débil, para probar openapi_inventory.py)
+  version: "2.3.0"
+servers:
+  - url: https://api.ejemplo.com/v2
+  - url: http://legacy.ejemplo.com/v1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    legacyKey:
+      type: apiKey
+      in: query
+      name: api_key
+  schemas:
+    User:
+      type: object
+      properties:
+        id: {type: string}
+        email: {type: string}
+        role: {type: string}
+        password_hash: {type: string}
+        api_key: {type: string}
+    UserUpdate:
+      type: object
+      additionalProperties: true
+      properties:
+        email: {type: string}
+        role: {type: string}
+        is_admin: {type: boolean}
+        balance: {type: number}
+security:
+  - bearerAuth: []
+paths:
+  /users:
+    get:
+      summary: Lista usuarios
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/User"}
+  /users/{userId}:
+    get:
+      summary: Obtiene un usuario
+      parameters:
+        - {name: userId, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/User"}
+    patch:
+      summary: Actualiza un usuario
+      parameters:
+        - {name: userId, in: path, required: true, schema: {type: string}}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UserUpdate"}
+      responses:
+        "200": {description: ok}
+  /admin/reports:
+    get:
+      summary: Reportes administrativos
+      responses:
+        "200": {description: ok}
+  /public/status:
+    get:
+      summary: Estado
+      security: []
+      responses:
+        "200": {description: ok}
+  /transfers:
+    post:
+      summary: Crea una transferencia
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from_account: {type: string}
+                to_account: {type: string}
+                amount: {type: number}
+                callback_url: {type: string}
+      responses:
+        "201": {description: creada}
+  /files/import:
+    post:
+      summary: Importa un archivo desde URL
+      parameters:
+        - {name: url, in: query, schema: {type: string}}
+      responses:
+        "202": {description: aceptado}
+  /v1/chat/completions:
+    post:
+      summary: Chat con asistente
+      responses:
+        "200": {description: ok}
+        "429": {description: demasiadas peticiones}
+  /v1/legacy/orders:
+    get:
+      summary: Pedidos (obsoleto)
+      deprecated: true
+      security:
+        - legacyKey: []
+      responses:
+        "200": {description: ok}
